@@ -10,18 +10,17 @@
   <body>
     <div class="header">
         <nav class="navbar navbar-dark p-0 d-flex align-items-center justify-content-center w-100 ">
-            <span class="badge bg-secondary rounded-0 num-cells-explored p-2">Cells Explored - 0</span>
+            <span class="badge bg-secondary rounded-0 num-cells-explored p-2">Cells Explored - <span id='cellsExplored'>0</span></span>
             <div class="w-100 d-flex text-white visualizer p-2 mb-1 align-items-center justify-content-center h5 shadow-sm">
                 Path-finding Visualizer
             </div>
-            <span class="badge bg-secondary rounded-0 path-length p-2">Path Length - 0</span>
+            <span class="badge bg-secondary rounded-0 path-length p-2">Path Length - <span id='pathLength'>0</span></span>
             <div class="w-100 d-flex align-items-center justify-content-center toolkit">
                 <div class="dropdown">
                     <a role="button" id="algorithmBtn" class="btn btn-secondary dropdown-toggle rounded-0 " data-bs-toggle="dropdown" aria-expanded="false">
                         Algorithms
                     </a>
                     <ul class="dropdown-menu dropdown-menu-dark">
-                        <li><a role="button" class="dropdown-item" onclick="changeAlgorithm('IDDFS')">Iterative Deepening DFS</a></li>
                         <li><a role="button" class="dropdown-item" onclick="changeAlgorithm('Greedy Best-First')">Greedy Best-First</a></li>
                         <li><a role="button" class="dropdown-item" onclick="changeAlgorithm('A-star')">A-star</a></li>
                         <li><a role="button" class="dropdown-item" onclick="changeAlgorithm('Dijkstras')">Dijkstras</a></li>

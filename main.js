@@ -16,6 +16,8 @@ var destinationDragging = false;
 var timeouts = [];
 var speed = 9;
 var algoInProgress = false;
+var cellsExplored = 0;
+var pathLength = 0;
 
 var infos = {
     'Dijkstras': 'Dijkstras Algorithm for an unweighted graph can be understood as a fire spreading evenly on the graph. Guarantees the shortest path.',
@@ -111,6 +113,10 @@ window.addEventListener("load", (event) => {});
 function setup() {
 
     this.algoInProgress = false;
+    this.pathLength = 0;
+    this.cellsExplored = 0;
+    document.getElementById('pathLength').innerHTML = this.pathLength;
+    document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
     this.clearTimeouts();
     let iMax = Math.round((window.innerHeight-200)/cellSize);
     let jMax = Math.round(window.innerWidth/cellSize);
@@ -296,6 +302,10 @@ function changeSpeed(val){
 
 function clearBoard(){
     this.algoInProgress = false;
+    this.cellsExplored = 0;
+    this.pathLength = 0;
+    document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+    document.getElementById('pathLength').innerHTML = this.pathLength;
     this.clearTimeouts();
     for(let i=0; i< this.grid.length; i++){
         for(let j=0; j<grid[i].length; j++){
@@ -313,6 +323,10 @@ function clearTimeouts(){
 
 async function dfs(instantFlag = false){
     this.algoInProgress = false;
+    this.pathLength = 0;
+    this.cellsExplored = 0;
+    document.getElementById('pathLength').innerHTML = this.pathLength;
+    document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
     this.clearTimeouts();
     for(let i=0; i<this.grid.length;i++){
         for(let j=0;j<this.grid[0].length;j++){
@@ -329,30 +343,12 @@ async function dfs(instantFlag = false){
     this.recursiveDFS(this.sourcePos.i, this.sourcePos.j, 0, instantFlag);
 }
 
-async function iterativeDepthFirstSearch(instantFlag = false) {
-    this.algoInProgress = false;
-    this.clearTimeouts();
-  
-    for (let i = 0; i < this.grid.length; i++) {
-      for (let j = 0; j < this.grid[0].length; j++) {
-        this.grid[i][j].preVisited = false;
-        this.grid[i][j].visited = false;
-        this.grid[i][j].isPath = false;
-        this.grid[i][j].distFromSource = 99999;
-      }
-    }
-  
-    this.grid[this.sourcePos.i][this.sourcePos.j].preVisited = true;
-    this.grid[this.sourcePos.i][this.sourcePos.j].visited = true;
-    this.grid[this.sourcePos.i][this.sourcePos.j].distFromSource = 0;
-  
-    
-}
-  
-  
-
 async function aStar(instantFlag = false){
     this.algoInProgress = false;
+    this.pathLength = 0;
+    this.cellsExplored = 0;
+    document.getElementById('pathLength').innerHTML = this.pathLength;
+    document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
     this.clearTimeouts();
     for(let i=0; i<this.grid.length;i++){
         for(let j=0;j<this.grid[0].length;j++){
@@ -382,7 +378,7 @@ async function recursiveAStar(pQue, instantFlag){
 
     if(grid[i][j].isDestination){
         this.tracePath(instantFlag);
-        return;
+        return;trace
     }
 
     this.grid[i][j].visited = true;
@@ -410,21 +406,29 @@ async function recursiveAStarUtil(i,j, pQue, instantFlag){
     if(i-1 >=0 && (( (!this.grid[i-1][j].preVisited || this.grid[i][j].preVisited && this.grid[i-1][j].distFromSource > this.grid[i][j].distFromSource + 1 ) && !this.grid[i-1][j].isWall) || this.grid[i-1][j].isDestination)){
         this.grid[i-1][j].distFromSource = Math.min(this.grid[i-1][j].distFromSource, this.grid[i][j].distFromSource+1);
         this.grid[i-1][j].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i:i-1, j:j},  this.getHeuristicDistance(i-1,j));
     }
     if(j+1 < this.grid[0].length && (( (!this.grid[i][j+1].preVisited || this.grid[i][j+1].preVisited && this.grid[i][j+1].distFromSource > this.grid[i][j].distFromSource + 1 ) && !this.grid[i][j+1].isWall) || this.grid[i][j+1].isDestination)){
         this.grid[i][j+1].distFromSource = Math.min(this.grid[i][j+1].distFromSource, this.grid[i][j].distFromSource+1);
         this.grid[i][j+1].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i: i, j:j+1}, this.getHeuristicDistance(i,j+1));
     } 
     if(i+1 < this.grid.length && (( (!this.grid[i+1][j].preVisited || this.grid[i+1][j].preVisited && this.grid[i+1][j].distFromSource > this.grid[i][j].distFromSource + 1 ) && !this.grid[i+1][j].isWall) || this.grid[i+1][j].isDestination)){
         this.grid[i+1][j].distFromSource = Math.min(this.grid[i+1][j].distFromSource, this.grid[i][j].distFromSource+1);
         this.grid[i+1][j].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i: i+1, j:j}, this.getHeuristicDistance(i+1,j));
     }
     if(j-1 >=0 && (( (!this.grid[i][j-1].preVisited || this.grid[i][j-1].preVisited && this.grid[i][j-1].distFromSource > this.grid[i][j].distFromSource + 1 ) && !this.grid[i][j-1].isWall) || this.grid[i][j-1].isDestination)){
         this.grid[i][j-1].distFromSource = Math.min(this.grid[i][j-1].distFromSource, this.grid[i][j].distFromSource+1);
         this.grid[i][j-1].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i: i, j: j-1}, this.getHeuristicDistance(i,j-1));
     }
     await new Promise(async (resolve) => { 
@@ -445,6 +449,10 @@ async function recursiveAStarUtil(i,j, pQue, instantFlag){
 
 async function greedy(instantFlag = false){
     this.algoInProgress = false;
+    this.pathLength = 0;
+    this.cellsExplored = 0;
+    document.getElementById('pathLength').innerHTML = this.pathLength;
+    document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
     this.clearTimeouts();
     for(let i=0; i<this.grid.length;i++){
         for(let j=0;j<this.grid[0].length;j++){
@@ -498,21 +506,29 @@ async function recursiveGreedyUtil(i,j, pQue, instantFlag){
     if(i-1 >=0 && ((!this.grid[i-1][j].preVisited && !this.grid[i-1][j].isWall) || this.grid[i-1][j].isDestination)){
         this.grid[i-1][j].distFromSource = Math.min(this.grid[i-1][j].distFromSource, this.grid[i][j].distFromSource+1);
         this.grid[i-1][j].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i:i-1, j:j}, this.getDistanceFromDestination(i-1,j));
     }
     if(j+1 < this.grid[0].length && ((!this.grid[i][j+1].preVisited && !this.grid[i][j+1].isWall) || this.grid[i][j+1].isDestination)){
         this.grid[i][j+1].distFromSource = Math.min(this.grid[i][j+1].distFromSource, this.grid[i][j].distFromSource+1);
         this.grid[i][j+1].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i: i, j:j+1}, this.getDistanceFromDestination(i,j+1));
     } 
     if(i+1 < this.grid.length && ((!this.grid[i+1][j].preVisited && !this.grid[i+1][j].isWall) || this.grid[i+1][j].isDestination)){
         this.grid[i+1][j].distFromSource = Math.min(this.grid[i+1][j].distFromSource, this.grid[i][j].distFromSource+1);
         this.grid[i+1][j].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i: i+1, j:j}, this.getDistanceFromDestination(i+1,j));
     }
     if(j-1 >=0 && ((!this.grid[i][j-1].preVisited && !this.grid[i][j-1].isWall) || this.grid[i][j-1].isDestination)){
         this.grid[i][j-1].distFromSource = Math.min(this.grid[i][j-1].distFromSource, this.grid[i][j].distFromSource+1);
         this.grid[i][j-1].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i: i, j: j-1}, this.getDistanceFromDestination(i,j-1));
     }
     await new Promise(async (resolve) => { 
@@ -538,6 +554,8 @@ async function recursiveDFS(i,j, dist,instantFlag){
             return false;
         }
         this.grid[i][j].visited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         if(!instantFlag){
             this.timeouts.push(setTimeout(async () => {
                 this.recursiveDFSUtil(i,j,dist,instantFlag).then((val)=>{
@@ -639,6 +657,10 @@ async function recursiveDFSUtil(i,j,dist,instantFlag){
 
 async function dijk(instantFlag = false){
     this.algoInProgress = false;
+    this.pathLength = 0;
+    this.cellsExplored = 0;
+    document.getElementById('pathLength').innerHTML = this.pathLength;
+    document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
     this.clearTimeouts();
     for(let i=0; i<this.grid.length;i++){
         for(let j=0;j<this.grid[0].length;j++){
@@ -684,21 +706,29 @@ async function recursiveDijkUtil(i,j,que, instantFlag){
     if( (i-1 >=0 && ((!this.grid[i-1][j].preVisited && !this.grid[i-1][j].isWall) || this.grid[i-1][j].isDestination))){
         this.grid[i-1][j].distFromSource = this.grid[i][j].distFromSource+1;
         this.grid[i-1][j].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         que.enqueue({i: i-1, j:j});
     }
     if(j+1 < this.grid[0].length && ((!this.grid[i][j+1].preVisited && !this.grid[i][j+1].isWall) || this.grid[i][j+1].isDestination)){
         this.grid[i][j+1].distFromSource = this.grid[i][j].distFromSource+1;
         this.grid[i][j+1].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         que.enqueue({i: i, j: j+1});
     } 
     if(i+1 < this.grid.length && ((!this.grid[i+1][j].preVisited && !this.grid[i+1][j].isWall) || this.grid[i+1][j].isDestination)){
         this.grid[i+1][j].distFromSource = this.grid[i][j].distFromSource+1;
         this.grid[i+1][j].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         que.enqueue({i: i+1, j:j});
     }
     if(j-1 >=0 && ((!this.grid[i][j-1].preVisited && !this.grid[i][j-1].isWall) || this.grid[i][j-1].isDestination)){
         this.grid[i][j-1].distFromSource = this.grid[i][j].distFromSource+1;
         this.grid[i][j-1].preVisited = true;
+        this.cellsExplored++;
+        document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         que.enqueue({i: i, j:j-1});
     }
     que.dequeue();
@@ -725,11 +755,17 @@ async function tracePath(instantFlag){
             await new Promise((resolve) => {
                 this.timeouts.push(setTimeout(() => {
                   this.grid[path[x].i][path[x].j].isPath = true;
+                  this.pathLength++;
+                  document.getElementById('pathLength').innerHTML = this.pathLength; 
                   resolve();
                 }, this.speed*3));
             });
         }
-        else this.grid[path[x].i][path[x].j].isPath = true;
+        else{
+            this.grid[path[x].i][path[x].j].isPath = true;
+            this.pathLength++;
+            document.getElementById('pathLength').innerHTML = this.pathLength; 
+        }
     }
 
     this.algoInProgress = true;
