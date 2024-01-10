@@ -3,6 +3,10 @@ var cellSize = 24;
 var wallColor = [30,30,60];
 var visitedColor = [0,225,245];
 var preVisitedColor = [0,200,220];
+
+var dijkColor = [240,110,110];
+var preDijkColor = [200,90,90];
+
 var pathColor = [240,240,0];
 var sourceColor = [0,80,240];
 var destinationColor = [220,30,30];
@@ -21,8 +25,9 @@ var pathLength = 0;
 
 var infos = {
     'Dijkstras': 'Dijkstras Algorithm for an unweighted graph can be understood as a fire spreading evenly on the graph. Guarantees the shortest path.',
+    'Bi-Directional Dijkstras': 'Meet-in-the-middle Dijkstras Algorithm. Guarantees the shortest path.',
     'DFS': 'The idea behind DFS is to go as deep into the graph as possible and then backtrack. DOES NOT guarantee the shortest path.',
-    'A-star' : 'A* also known as the best-first search algorithm is a heuristic informed search algorithm. Guarantees the shortet path.',
+    'A-star' : 'A* Search Algorithm is a heuristic informed search algorithm. Guarantees the shortest path.',
     'Greedy Best-First': 'Greedy Best-first search prioritizes paths that appear to be the most promising, regardless of whether or not they are actually the shortest path. '
 }
 
@@ -33,9 +38,11 @@ class Cell{
         this.isWall = isWall;
         this.isPath = false;
         this.distFromSource = 99999;
+        this.distFromDestination = 99999;
         this.preVisited = false;
         this.visited = false;
-        this.visitedAtLowerDepth = false;
+        this.preDijk = false;
+        this.dijk = false;
     }
 };
 
@@ -153,8 +160,8 @@ function displayGrid(){
             this.grid[i][j].isSource  = (i === this.sourcePos.i && j === this.sourcePos.j)? true: false;
             this.grid[i][j].isDestination = (i === this.destinationPos.i && j === this.destinationPos.j)? true: false;
 
-            this.grid[i][j]?.isSource? fill(sourceColor): this.grid[i][j]?.isDestination? fill(destinationColor) : this.grid[i][j]?.isWall? fill(wallColor): this.grid[i][j].isPath? fill(pathColor) : this.grid[i][j].visited? fill(visitedColor): this.grid[i][j].preVisited? fill(preVisitedColor) : fill(250,250,250);
-            this.grid[i][j]?.isSource? stroke(wallColor): this.grid[i][j]?.isDestination? stroke(wallColor) : this.grid[i][j]?.isWall? stroke(wallColor): this.grid[i][j].isPath? stroke(230,230,180) : this.grid[i][j].visited? stroke(180,250,255) : stroke(180,200,200);
+            this.grid[i][j]?.isSource? fill(sourceColor): this.grid[i][j]?.isDestination? fill(destinationColor) : this.grid[i][j]?.isWall? fill(wallColor): this.grid[i][j].isPath? fill(pathColor) : this.grid[i][j].dijk? fill(dijkColor) : this.grid[i][j].preDijk? fill(preDijkColor) : this.grid[i][j].visited? fill(visitedColor): this.grid[i][j].preVisited? fill(preVisitedColor) : fill(250,250,255);
+            this.grid[i][j]?.isSource? stroke(wallColor): this.grid[i][j]?.isDestination? stroke(wallColor) : this.grid[i][j]?.isWall? stroke(wallColor): this.grid[i][j].isPath? stroke(230,230,180) : this.grid[i][j].dijk? stroke(255,140,140) : this.grid[i][j].visited? stroke(180,250,255) : stroke(190,200,210);
             square(j*cellSize, i*cellSize, cellSize);
         }
     }
@@ -202,8 +209,8 @@ function mousePressed() {
                 case 'Greedy Best-First':
                     this.greedy(true);
                     break;
-                case 'IDDFS':
-                    this.iterativeDepthFirstSearch(true);
+                case 'Bi-Directional Dijkstras':
+                    this.biDijk(true);
                     break;
                 default:
                     return;
@@ -240,8 +247,8 @@ function mouseReleased(){
                 case 'Greedy Best-First':
                     this.greedy(true);
                     break;
-                case 'IDDFS':
-                    this.iterativeDepthFirstSearch(true);
+                case 'Bi-Directional Dijkstras':
+                    this.biDijk(true);
                     break;
                 default:
                     return;
@@ -274,8 +281,8 @@ function mouseDragged() {
                 case 'Greedy Best-First':
                     this.greedy(true);
                     break;
-                case 'IDDFS':
-                    this.iterativeDepthFirstSearch(true);
+                case 'Bi-Directional Dijkstras':
+                    this.biDijk(true);
                     break;
                 default:
                     return;
@@ -313,6 +320,8 @@ function clearBoard(){
             this.grid[i][j].isPath = false;
             this.grid[i][j].visited = false;
             this.grid[i][j].preVisited = false;
+            this.grid[i][j].preDijk = false;
+            this.grid[i][j].dijk = false;
         } 
     }
 }
@@ -334,6 +343,9 @@ async function dfs(instantFlag = false){
             this.grid[i][j].visited = false;
             this.grid[i][j].isPath = false;
             this.grid[i][j].distFromSource = 99999;
+            this.grid[i][j].preDijk = false;
+            this.grid[i][j].dijk = false;
+            this.grid[i][j].distFromDestination = 99999;
         }
     }
 
@@ -356,6 +368,9 @@ async function aStar(instantFlag = false){
             this.grid[i][j].visited = false;
             this.grid[i][j].isPath = false;
             this.grid[i][j].distFromSource = 99999;
+            this.grid[i][j].preDijk = false;
+            this.grid[i][j].dijk = false;
+            this.grid[i][j].distFromDestination = 99999;
         }
     }
     let pQue = new PriorityQueue();
@@ -395,11 +410,11 @@ async function recursiveAStar(pQue, instantFlag){
 }
 
 function getHeuristicDistance(i,j){
-
     let a1 = Math.abs(this.destinationPos.i - i);
     let b1 = Math.abs(this.destinationPos.j - j);
-    var distFromDestination = Math.sqrt( a1*a1 + b1*b1);
-    return distFromDestination + 0.5*this.grid[i][j].distFromSource;
+    var distFromDestination = Math.sqrt(a1*a1 + b1*b1);
+    var distFromSource = this.grid[i][j].distFromSource;
+    return distFromDestination + 0.5*distFromSource;
 }
 
 async function recursiveAStarUtil(i,j, pQue, instantFlag){
@@ -431,20 +446,13 @@ async function recursiveAStarUtil(i,j, pQue, instantFlag){
         document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i: i, j: j-1}, this.getHeuristicDistance(i,j-1));
     }
-    await new Promise(async (resolve) => { 
-        if(!instantFlag){
-            this.timeouts.push(setTimeout(async () => {
-                await recursiveAStar(pQue, instantFlag).then(()=>{
-                    resolve();
-                })
-            }, this.speed));
-        }
-        else{
-            await recursiveAStar(pQue, instantFlag).then(()=>{
-                resolve();
-            })
-        } 
-    });
+
+    if(!instantFlag){
+        this.timeouts.push(setTimeout(async () => {
+            recursiveAStar(pQue, instantFlag);
+        }, this.speed));
+    }
+    else recursiveAStar(pQue, instantFlag);
 }
 
 async function greedy(instantFlag = false){
@@ -460,6 +468,9 @@ async function greedy(instantFlag = false){
             this.grid[i][j].visited = false;
             this.grid[i][j].isPath = false;
             this.grid[i][j].distFromSource = 99999;
+            this.grid[i][j].preDijk = false;
+            this.grid[i][j].dijk = false;
+            this.grid[i][j].distFromDestination = 99999;
         }
     }
     let pQue = new PriorityQueue();
@@ -531,20 +542,14 @@ async function recursiveGreedyUtil(i,j, pQue, instantFlag){
         document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
         pQue.enqueue({i: i, j: j-1}, this.getDistanceFromDestination(i,j-1));
     }
-    await new Promise(async (resolve) => { 
-        if(!instantFlag){
-            this.timeouts.push(setTimeout(async () => {
-                await recursiveGreedy(pQue, instantFlag).then(()=>{
-                    resolve();
-                })
-            }, this.speed));
-        }
-        else{
-            await recursiveGreedy(pQue, instantFlag).then(()=>{
-                resolve();
-            })
-        } 
-    });
+    if(!instantFlag){
+        this.timeouts.push(setTimeout(async () => {
+            recursiveGreedy(pQue, instantFlag);
+        }, this.speed));
+    }
+    else recursiveGreedy(pQue, instantFlag);
+    
+
 }
 
 async function recursiveDFS(i,j, dist,instantFlag){
@@ -668,6 +673,9 @@ async function dijk(instantFlag = false){
             this.grid[i][j].visited = false;
             this.grid[i][j].isPath = false;
             this.grid[i][j].distFromSource = 99999;
+            this.grid[i][j].preDijk = false;
+            this.grid[i][j].dijk = false;
+            this.grid[i][j].distFromDestination = 99999;
         }
     }
     let que = new Queue();
@@ -734,6 +742,217 @@ async function recursiveDijkUtil(i,j,que, instantFlag){
     que.dequeue();
     recursiveDijk(que, instantFlag);
 }
+
+
+
+
+async function biDijk(instantFlag = false){
+    this.algoInProgress = false;
+    this.pathLength = 0;
+    this.cellsExplored = 0;
+    document.getElementById('pathLength').innerHTML = this.pathLength;
+    document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+    this.clearTimeouts();
+    for(let i=0; i<this.grid.length;i++){
+        for(let j=0;j<this.grid[0].length;j++){
+            this.grid[i][j].preVisited = false;
+            this.grid[i][j].visited = false;
+
+            this.grid[i][j].preDijk = false;
+            this.grid[i][j].dijk = false;
+
+            this.grid[i][j].isPath = false;
+            this.grid[i][j].distFromSource = 99999;
+            this.grid[i][j].distFromDestination = 99999;
+        }
+    }
+    let que = new Queue();
+    this.grid[this.sourcePos.i][this.sourcePos.j].preVisited = true;
+    this.grid[this.sourcePos.i][this.sourcePos.j].visited = true;
+    this.grid[this.sourcePos.i][this.sourcePos.j].distFromSource = 0;
+    que.enqueue(this.sourcePos);
+
+    let destinationQue = new Queue();
+    this.grid[this.destinationPos.i][this.destinationPos.j].preDijk = true;
+    this.grid[this.destinationPos.i][this.destinationPos.j].dijk = true;
+    this.grid[this.destinationPos.i][this.destinationPos.j].distFromDestination = 0;
+    destinationQue.enqueue(this.destinationPos);
+
+    this.recursiveBiDijk(que, destinationQue, instantFlag);
+}
+
+async function recursiveBiDijk(que, destinationQue, instantFlag){
+    if(que.isEmpty && destinationQue.isEmpty){
+        this.algoInProgress = true;
+        return;
+    }
+    if(!que.isEmpty){
+        let i = que.peek().i;
+        let j = que.peek().j;
+        if(grid[i][j].isDestination || grid[i][j].preDijk){
+            this.tracePathBiDijk(i,j,instantFlag);
+            return false;
+        }
+        this.grid[i][j].visited = true;
+    }
+    if(!destinationQue.isEmpty){
+        let i1 = destinationQue.peek().i;
+        let j1 = destinationQue.peek().j;
+        if(grid[i1][j1].isSource || grid[i1][j1].preVisited){
+            this.tracePathBiDijk(i1,j1,instantFlag);
+            return false;
+        }
+        this.grid[i1][j1].dijk = true;
+    }
+    
+    await new Promise((resolve) => {
+
+        let i = !que.isEmpty? que.peek().i : -200;
+        let j = !que.isEmpty? que.peek().j : -200;
+        let i1 = !destinationQue.isEmpty? destinationQue.peek().i : -200;
+        let j1 = !destinationQue.isEmpty? destinationQue.peek().j : -200;
+
+        if(!instantFlag){
+            this.timeouts.push(setTimeout(async () => {
+                resolve();
+                this.recursiveBiDijkUtil(i,j,i1,j1,que,destinationQue,instantFlag);
+            }, this.speed));
+        }
+        else recursiveBiDijkUtil(i,j,i1,j1,que,destinationQue,instantFlag);
+        
+    });
+}
+
+async function recursiveBiDijkUtil(i,j,i1,j1,que,destinationQue,instantFlag){
+    if(!(i == -200 && j == -200)){
+        if( (i-1 >=0 && ((!this.grid[i-1][j].preVisited && !this.grid[i-1][j].isWall) || this.grid[i-1][j].isDestination))){
+            this.grid[i-1][j].distFromSource = this.grid[i][j].distFromSource+1;
+            this.grid[i-1][j].preVisited = true;
+            this.cellsExplored++;
+            document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+            que.enqueue({i: i-1, j:j});
+        }
+        if(j+1 < this.grid[0].length && ((!this.grid[i][j+1].preVisited && !this.grid[i][j+1].isWall) || this.grid[i][j+1].isDestination)){
+            this.grid[i][j+1].distFromSource = this.grid[i][j].distFromSource+1;
+            this.grid[i][j+1].preVisited = true;
+            this.cellsExplored++;
+            document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+            que.enqueue({i: i, j: j+1});
+        } 
+        if(i+1 < this.grid.length && ((!this.grid[i+1][j].preVisited && !this.grid[i+1][j].isWall) || this.grid[i+1][j].isDestination)){
+            this.grid[i+1][j].distFromSource = this.grid[i][j].distFromSource+1;
+            this.grid[i+1][j].preVisited = true;
+            this.cellsExplored++;
+            document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+            que.enqueue({i: i+1, j:j});
+        }
+        if(j-1 >=0 && ((!this.grid[i][j-1].preVisited && !this.grid[i][j-1].isWall) || this.grid[i][j-1].isDestination)){
+            this.grid[i][j-1].distFromSource = this.grid[i][j].distFromSource+1;
+            this.grid[i][j-1].preVisited = true;
+            this.cellsExplored++;
+            document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+            que.enqueue({i: i, j:j-1});
+        }
+        que.dequeue();
+    }
+
+    if(!(i1 == -200 && j1 == -200)){
+
+        if( (i1-1 >=0 && ((!this.grid[i1-1][j1].preDijk && !this.grid[i1-1][j1].isWall) || this.grid[i1-1][j1].isSource))){
+            this.grid[i1-1][j1].distFromDestination = this.grid[i1][j1].distFromDestination+1;
+            this.grid[i1-1][j1].preDijk = true;
+            this.cellsExplored++;
+            document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+            destinationQue.enqueue({i: i1-1, j:j1});
+        }
+        if(j1+1 < this.grid[0].length && ((!this.grid[i1][j1+1].preDijk && !this.grid[i1][j1+1].isWall) || this.grid[i1][j1+1].isSource)){
+            this.grid[i1][j1+1].distFromDestination = this.grid[i1][j1].distFromDestination+1;
+            this.grid[i1][j1+1].preDijk = true;
+            this.cellsExplored++;
+            document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+            destinationQue.enqueue({i: i1, j: j1+1});
+        } 
+        if(i1+1 < this.grid.length && ((!this.grid[i1+1][j1].preDijk && !this.grid[i1+1][j1].isWall) || this.grid[i1+1][j1].isSource)){
+            this.grid[i1+1][j1].distFromDestination = this.grid[i1][j1].distFromDestination+1;
+            this.grid[i1+1][j1].preDijk = true;
+            this.cellsExplored++;
+            document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+            destinationQue.enqueue({i: i1+1, j:j1});
+        }
+        if(j1-1 >=0 && ((!this.grid[i1][j1-1].preDijk && !this.grid[i1][j1-1].isWall) || this.grid[i1][j1-1].isSource)){
+            this.grid[i1][j1-1].distFromDestination = this.grid[i1][j1].distFromDestination+1;
+            this.grid[i1][j1-1].preDijk = true;
+            this.cellsExplored++;
+            document.getElementById('cellsExplored').innerHTML = this.cellsExplored;
+            destinationQue.enqueue({i: i1, j:j1-1});
+        }
+        destinationQue.dequeue();
+    }
+
+
+    recursiveBiDijk(que, destinationQue, instantFlag);
+}
+
+
+
+async function tracePathBiDijk(i,j,instantFlag){
+
+    this.clearTimeouts();
+    let currI = i;
+    let currJ = j;
+
+    let currI2 = i;
+    let currJ2 = j;
+
+    let currI3 = i;
+    let currJ3 = j;
+
+    let k = this.grid[currI][currJ].distFromSource;
+    let k2 = this.grid[currI2][currJ2].distFromDestination;
+    let path = [];
+    let path2 = [];
+
+    while(k > 1){
+        if(currI-1 >=0 && this.grid[currI-1][currJ].distFromSource == k-1) currI = currI-1;
+        else if(currJ-1 >=0 && this.grid[currI][currJ-1].distFromSource == k-1)  currJ = currJ-1;
+        else if(currI+1 < this.grid.length && this.grid[currI+1][currJ].distFromSource == k-1) currI = currI+1;
+        else if(currJ+1 < this.grid[0].length && this.grid[currI][currJ+1].distFromSource == k-1) currJ = currJ+1;
+        path.push({i:currI, j:currJ});
+        k = k-1;
+    }
+    while(k2 > 1){
+        if(currI2-1 >=0 && this.grid[currI2-1][currJ2].distFromDestination == k2-1) currI2 = currI2-1;
+        else if(currJ2-1 >=0 && this.grid[currI2][currJ2-1].distFromDestination == k2-1)  currJ2 = currJ2-1;
+        else if(currI2+1 < this.grid.length && this.grid[currI2+1][currJ2].distFromDestination == k2-1) currI2 = currI2+1;
+        else if(currJ2+1 < this.grid[0].length && this.grid[currI2][currJ2+1].distFromDestination == k2-1) currJ2 = currJ2+1;
+        path2.push({i:currI2, j:currJ2});
+        k2 = k2-1;
+    }
+    path2 = path2.reverse();
+    path2.push({i:currI3, j:currJ3});
+    path2 = path2.concat(path);
+    for(let x = path2.length-1; x>=0; x--){
+        if(!instantFlag){
+            await new Promise((resolve) => {
+                this.timeouts.push(setTimeout(() => {
+                  this.grid[path2[x].i][path2[x].j].isPath = true;
+                  this.pathLength++;
+                  document.getElementById('pathLength').innerHTML = this.pathLength; 
+                  resolve();
+                }, this.speed*3));
+            });
+        }
+        else{
+            this.grid[path2[x].i][path2[x].j].isPath = true;
+            this.pathLength++;
+            document.getElementById('pathLength').innerHTML = this.pathLength; 
+        }
+    }
+
+    this.algoInProgress = true;
+}
+
+
 
 async function tracePath(instantFlag){
 
@@ -869,8 +1088,8 @@ function visualize(){
         case 'Greedy Best-First':
             this.greedy();
             break;
-        case 'IDDFS':
-            this.iterativeDepthFirstSearch();
+        case 'Bi-Directional Dijkstras':
+            this.biDijk();
             break;
         default: 
             return;
